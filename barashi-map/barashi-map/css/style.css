@@ -164,3 +164,19 @@ select.mi option { background:var(--surface2); }
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+.node-tip {
+  position: fixed;
+  z-index: 240;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(13,17,23,0.96);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.45;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  pointer-events: none;
+  white-space: normal;
+}

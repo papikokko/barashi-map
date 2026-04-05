@@ -37,6 +37,35 @@ function mk(tag, a = {}) {
   return e;
 }
 
+function openRefUrl(url) {
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function showNodeTip(e, text) {
+  if (!text) return;
+  hideNodeTip();
+  const tip = document.createElement('div');
+  tip.id = 'nodeTip';
+  tip.className = 'node-tip';
+  tip.textContent = text;
+  tip.style.left = `${e.clientX + 12}px`;
+  tip.style.top = `${e.clientY + 12}px`;
+  document.body.appendChild(tip);
+}
+
+function moveNodeTip(e) {
+  const tip = document.getElementById('nodeTip');
+  if (!tip) return;
+  tip.style.left = `${e.clientX + 12}px`;
+  tip.style.top = `${e.clientY + 12}px`;
+}
+
+function hideNodeTip() {
+  const tip = document.getElementById('nodeTip');
+  if (tip) tip.remove();
+}
+
 // ── 列順（反転対応）────────────────────────────────────
 function getOrder() {
   const e = cols.filter(c => c.side === 'elem').sort((a, b) => a.order - b.order);
@@ -219,7 +248,10 @@ function drawNode(g, nd, col, colX, hasHL, hlN) {
     if (!isSel) rect.setAttribute('fill', faded ? '#080b0f' : '#0d1117');
     rect.setAttribute('stroke-opacity', isSel ? '1' : faded ? '0.15' : '0.55');
     del.setAttribute('fill', 'rgba(200,80,80,0)');
+    hideNodeTip();
   });
+  rect.addEventListener('mouseenter', e => showNodeTip(e, nd.description));
+  rect.addEventListener('mousemove', moveNodeTip);
   rect.addEventListener('click', e => onNodeClick(e, nd.id));
   g.appendChild(rect);
 
@@ -228,8 +260,22 @@ function drawNode(g, nd, col, colX, hasHL, hlN) {
   const tx = mk('text', { x: nx + 11, y: y + NH / 2 + 4, fill: faded ? 'rgba(120,120,120,0.3)' : '#e6edf3', 'font-size': '10', 'font-family': 'Noto Sans JP,sans-serif' });
   const ml = 10; tx.textContent = nd.name.length > ml ? nd.name.slice(0, ml) + '…' : nd.name;
   tx.style.cursor = 'pointer';
+  tx.addEventListener('mouseenter', e => showNodeTip(e, nd.description));
+  tx.addEventListener('mousemove', moveNodeTip);
+  tx.addEventListener('mouseleave', hideNodeTip);
   tx.addEventListener('click', e => onNodeClick(e, nd.id));
   g.appendChild(tx);
+
+  if (nd.refUrl) {
+    const ref = mk('text', { x: nx + nw - 18, y: y + NH / 2 + 4, fill: faded ? 'rgba(120,120,120,0.3)' : '#8ec5ff', 'font-size': '10', 'font-family': 'DM Mono,monospace' });
+    ref.textContent = '↗';
+    ref.style.cursor = 'pointer';
+    ref.addEventListener('click', e => {
+      e.stopPropagation();
+      openRefUrl(nd.refUrl);
+    });
+    g.appendChild(ref);
+  }
 
   del.addEventListener('click', e => { e.stopPropagation(); if (hlState.nodeId === nd.id) hlState = { nodeId: null, depth: 0 }; removeNd(nd.id); });
   g.appendChild(del);
@@ -387,6 +433,16 @@ function renderNodesTab(b) {
     const col  = cols.find(c => c.id === n.colId);
     const item = document.createElement('div'); item.className = 'sitem';
     item.innerHTML = `<div class="sdot" style="background:${cc(col?.side || 'req')}"></div><span class="sname">${n.name}</span><span style="font-size:10px;color:var(--text-muted)">${col?.name || '?'}</span><span style="cursor:pointer;color:#e05050;font-size:13px;padding:0 2px" onclick="removeNd('${n.id}')">×</span>`;
+    if (n.refUrl) {
+      const ref = document.createElement('span');
+      ref.textContent = n.refLabel || 'ref';
+      ref.style.cssText = 'cursor:pointer;color:#8ec5ff;font-size:10px;padding:0 4px';
+      ref.addEventListener('click', e => {
+        e.stopPropagation();
+        openRefUrl(n.refUrl);
+      });
+      item.appendChild(ref);
+    }
     list.appendChild(item);
   });
   b.appendChild(list);
