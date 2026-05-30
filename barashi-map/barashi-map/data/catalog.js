@@ -24,5 +24,15 @@
     file: 'ICE車RFLPマップ.js',
     label: 'ICE車RFLPマップ',
     mode: 'payload'
+  },
+  {
+    file: 'カナデビア水電解装置RFLPマップ.js',
+    label: '水電解装置RFLPマップ',
+    mode: 'payload'
+  },
+  {
+    file: '水電解装置RFLPマップ②.js',
+    label: '水電解装置RFLPマップ②',
+    mode: 'payload'
   }
 ];

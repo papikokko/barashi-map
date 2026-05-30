@@ -12,8 +12,16 @@
     nds = [];
     lks = [];
     idc = 1;
-    hlState = { nodeId: null, depth: 0 };
+    hlState = { selected: [], activeNodeId: null, nodeId: null, depth: 0 };
     flipped = false;
+    isolateMode = false;
+    isolateLocked = false;
+    isolateSnapshot = null;
+    structureView = null;
+    structurePanelOpen = false;
+    defectMap = null;
+    structureSelectedBlockId = null;
+    defectReviewMode = false;
 
     const flipBtn = document.getElementById('flipBtn');
     if (flipBtn) {
@@ -29,6 +37,154 @@
     if (indicator) {
       indicator.classList.remove('show');
     }
+
+    if (typeof syncUiState === 'function') {
+      syncUiState();
+    }
+  }
+
+  function mapStructureViewForRuntime(definition, runtimeNodeIds) {
+    if (!definition || !Array.isArray(definition.blocks) || !definition.blocks.length) {
+      return null;
+    }
+
+    return {
+      title: definition.title || '構造ビュー',
+      description: definition.description || '',
+      width: definition.width || 720,
+      height: definition.height || 520,
+      style: definition.style ? JSON.parse(JSON.stringify(definition.style)) : {},
+      blocks: definition.blocks.map(function (block) {
+        return {
+          id: block.id,
+          kind: block.kind || '',
+          label: block.label,
+          x: Number(block.x) || 0,
+          y: Number(block.y) || 0,
+          w: Number(block.w) || 140,
+          h: Number(block.h) || 90,
+          tone: block.tone || 'process',
+          note: block.note || '',
+          style: block.style ? JSON.parse(JSON.stringify(block.style)) : {},
+          focusNodeId: runtimeNodeIds.get(block.focusNodeId) || null,
+          nodeIds: (block.nodeIds || block.nodeRefs || [])
+            .map(function (nodeId) { return runtimeNodeIds.get(nodeId); })
+            .filter(Boolean)
+        };
+      }),
+      connectors: (definition.connectors || []).map(function (connector) {
+        return {
+          from: connector.from,
+          to: connector.to,
+          label: connector.label || '',
+          emphasis: !!connector.emphasis,
+          style: connector.style ? JSON.parse(JSON.stringify(connector.style)) : {},
+          labelPos: connector.labelPos ? {
+            x: Number(connector.labelPos.x) || 0,
+            y: Number(connector.labelPos.y) || 0
+          } : null,
+          points: Array.isArray(connector.points)
+            ? connector.points.map(function (point) {
+              return {
+                x: Number(point.x) || 0,
+                y: Number(point.y) || 0
+              };
+            })
+            : null
+        };
+      })
+    };
+  }
+
+  function serializeStructureView(nodeKeyMap) {
+    if (!structureView || !Array.isArray(structureView.blocks) || !structureView.blocks.length) {
+      return undefined;
+    }
+
+    return {
+      title: structureView.title || '構造ビュー',
+      description: structureView.description || '',
+      width: structureView.width || 720,
+      height: structureView.height || 520,
+      style: structureView.style && Object.keys(structureView.style).length ? structureView.style : undefined,
+      blocks: structureView.blocks.map(function (block) {
+        return {
+          id: block.id,
+          kind: block.kind || undefined,
+          label: block.label,
+          x: block.x,
+          y: block.y,
+          w: block.w,
+          h: block.h,
+          tone: block.tone,
+          note: block.note || undefined,
+          style: block.style && Object.keys(block.style).length ? block.style : undefined,
+          focusNodeId: block.focusNodeId ? nodeKeyMap.get(block.focusNodeId) : undefined,
+          nodeIds: (block.nodeIds || [])
+            .map(function (nodeId) { return nodeKeyMap.get(nodeId); })
+            .filter(Boolean)
+        };
+      }),
+      connectors: (structureView.connectors || []).map(function (connector) {
+        return {
+          from: connector.from,
+          to: connector.to,
+          label: connector.label || undefined,
+          emphasis: connector.emphasis || undefined,
+          style: connector.style && Object.keys(connector.style).length ? connector.style : undefined,
+          labelPos: connector.labelPos || undefined,
+          points: Array.isArray(connector.points) && connector.points.length ? connector.points : undefined
+        };
+      })
+    };
+  }
+
+  function mapDefectMapForRuntime(definition, runtimeNodeIds) {
+    if (!definition || !Array.isArray(definition.items) || !definition.items.length) {
+      return null;
+    }
+
+    return {
+      title: definition.title || '不具合ヒートマップ',
+      description: definition.description || '',
+      items: definition.items.map(function (item) {
+        return {
+          category: item.category || '',
+          label: item.label || '',
+          count: Number(item.count) || 0,
+          layer: item.layer || '',
+          targetLabel: item.targetLabel || '',
+          structureBlockIds: Array.isArray(item.structureBlockIds) ? item.structureBlockIds.slice() : [],
+          targetNodeIds: (item.targetNodeIds || [])
+            .map(function (nodeId) { return runtimeNodeIds.get(nodeId); })
+            .filter(Boolean)
+        };
+      })
+    };
+  }
+
+  function serializeDefectMap(nodeKeyMap) {
+    if (!defectMap || !Array.isArray(defectMap.items) || !defectMap.items.length) {
+      return undefined;
+    }
+
+    return {
+      title: defectMap.title || '不具合ヒートマップ',
+      description: defectMap.description || '',
+      items: defectMap.items.map(function (item) {
+        return {
+          category: item.category || undefined,
+          label: item.label || '',
+          count: Number(item.count) || 0,
+          layer: item.layer || undefined,
+          targetLabel: item.targetLabel || undefined,
+          structureBlockIds: Array.isArray(item.structureBlockIds) && item.structureBlockIds.length ? item.structureBlockIds.slice() : undefined,
+          targetNodeIds: (item.targetNodeIds || [])
+            .map(function (nodeId) { return nodeKeyMap.get(nodeId); })
+            .filter(Boolean)
+        };
+      })
+    };
   }
 
   function applyDataPayload(payload) {
@@ -81,6 +237,10 @@
         s: link.strength === 'strong' || link.strength === 'mid' ? link.strength : 'weak'
       });
     });
+
+    structureView = mapStructureViewForRuntime(payload.structureView, nodeIds);
+    structurePanelOpen = !!structureView;
+    defectMap = mapDefectMapForRuntime(payload.defectMap, nodeIds);
 
     fitView();
     render();
@@ -165,7 +325,9 @@
         })
         .filter(function (link) {
           return link.fromId && link.toId && link.fromId !== link.toId;
-        })
+        }),
+      structureView: serializeStructureView(nodeKeyMap),
+      defectMap: serializeDefectMap(nodeKeyMap)
     };
 
     return payload;

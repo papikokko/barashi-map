@@ -13,12 +13,19 @@
 function loadSample() {
   // リセット
   cols = []; nds = []; lks = []; idc = 1;
-  hlState = { nodeId: null, depth: 0 };
+  hlState = { selected: [], activeNodeId: null, nodeId: null, depth: 0 };
   flipped = false;
+  isolateMode = false;
+  isolateLocked = false;
+  isolateSnapshot = null;
+  structureView = null;
+  structurePanelOpen = false;
+  defectMap = null;
   document.getElementById('flipBtn').textContent = '⇄ 左右反転';
   document.getElementById('flipBtn').style.color = '';
   document.getElementById('flipBtn').style.borderColor = '';
   document.getElementById('hlInd').classList.remove('show');
+  if (typeof syncUiState === 'function') syncUiState();
 
   // ── 列定義 ──────────────────────────────────────────
   // 要素側（左）: バイク全体 → 系統 → 主要部品 → 詳細部品
