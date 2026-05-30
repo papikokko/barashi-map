@@ -117,3 +117,82 @@ lk(nMyNode, otherNodeId, 'strong');
 ## 📝 ライセンス
 
 MIT License
+
+---
+
+## Reproducible Notes
+
+This branch adds a data-driven workflow without changing the core static app structure.
+
+### Added files
+
+- `data/sample.js`
+  - moved default sample loader from `js/sample.js`
+- `data/catalog.js`
+  - dropdown source for selectable datasets
+- `data/sample-bike-map.js`
+  - minimal external sample dataset
+- `data/バイクばらし１.js`
+  - Yamaha-based bike structure dataset with references and descriptions
+- `data/バイクばらし１-sources.md`
+  - source URL list used while building `バイクばらし１`
+- `js/data-loader.js`
+  - external data loading, save, save-as, and serialization support
+
+### Current behavior
+
+- `Load Sample`
+  - loads the default sample from `data/sample.js`
+- dataset dropdown + `Load Data`
+  - loads entries listed in `data/catalog.js`
+- `New Data`
+  - creates a new blank working dataset
+- `Save`
+  - overwrites the current file inside the selected `data` folder
+- `Save As`
+  - saves a new file inside the selected `data` folder
+- node hover
+  - shows a short description when `description` exists
+- node reference link
+  - opens the source URL when `refUrl` exists
+
+### Data format
+
+Each dataset exports:
+
+```js
+window.BARASHI_DATA_PAYLOAD = {
+  cols: [
+    { key: 'l0-bike', name: 'L0_バイク', side: 'elem', order: 0 }
+  ],
+  nodes: [
+    {
+      id: 'bike',
+      name: 'バイク',
+      colKey: 'l0-bike',
+      description: 'short explanation',
+      refUrl: 'https://example.com',
+      refLabel: 'src'
+    }
+  ],
+  links: [
+    { fromId: 'bike', toId: 'sys-power', strength: 'strong' }
+  ]
+};
+```
+
+### How to reproduce
+
+1. Clone the repository.
+2. Open `barashi-map/index.html`.
+3. Select a dataset from the dropdown populated by `data/catalog.js`.
+4. Click `Load Data`.
+5. Hover nodes to see descriptions.
+6. Click `↗` or `ref` to open the source page.
+7. Use `Save` or `Save As` and select the repository `data` folder when the browser asks for a directory.
+
+### Notes
+
+- This app is still a static HTML/CSS/JS project.
+- Browser support for `Save` / `Save As` depends on `showDirectoryPicker`.
+- The intended save target is the repository `data` folder for reproducibility.
